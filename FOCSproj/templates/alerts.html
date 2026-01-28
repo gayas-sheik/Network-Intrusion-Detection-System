@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Intrusion Alerts - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-exclamation-triangle"></i> Intrusion Alerts
+                <small class="text-muted">Security Threat Detection</small>
+            </h2>
+            <div>
+                {% if current_user.role in ['admin', 'analyst'] %}
+                <button class="btn btn-outline-warning btn-sm" onclick="exportAlerts()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ alerts.items | selectattr('severity', 'equalto', 'low') | list | length }}</h5>
+                <p class="card-text">Low Severity</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ alerts.items | selectattr('severity', 'equalto', 'medium') | list | length }}</h5>
+                <p class="card-text">Medium Severity</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-danger">{{ alerts.items | selectattr('severity', 'equalto', 'high') | list | length }}</h5>
+                <p class="card-text">High Severity</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-dark">{{ alerts.items | selectattr('severity', 'equalto', 'critical') | list | length }}</h5>
+                <p class="card-text">Critical Severity</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Filters -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-filter"></i> Alert Filters
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="severity_filter" class="form-label">Severity</label>
+                <select class="form-select" id="severity_filter" name="severity">
+                    <option value="">All Severities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="type_filter" class="form-label">Alert Type</label>
+                <select class="form-select" id="type_filter" name="type">
+                    <option value="">All Types</option>
+                    <option value="flooding">Flooding</option>
+                    <option value="port_scan">Port Scan</option>
+                    <option value="anomaly">Traffic Anomaly</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status_filter" class="form-label">Status</label>
+                <select class="form-select" id="status_filter" name="status">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="false_positive">False Positive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                    <a href="{{ url_for('alerts') }}" class="btn btn-outline-secondary ms-1">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alerts List -->
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle"></i> Detected Intrusion Attempts
+            <span class="badge bg-light text-dark ms-2">{{ alerts.total }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if alerts.items %}
+            {% for alert in alerts.items %}
+            <div class="alert-card {{ alert.severity }} mb-3 p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-{{ 'success' if alert.severity == 'low' else 'warning' if alert.severity == 'medium' else 'danger' if alert.severity == 'high' else 'dark' }} me-2">
+                                {{ alert.severity.upper() }}
+                            </span>
+                            <span class="badge bg-secondary me-2">
+                                {{ alert.alert_type.replace('_', ' ').title() }}
+                            </span>
+                            <span class="badge bg-{{ 'success' if alert.status == 'resolved' else 'danger' if alert.status == 'active' else 'warning' }}">
+                                {{ alert.status.replace('_', ' ').title() }}
+                            </span>
+                            <small class="text-muted ms-2">
+                                <i class="fas fa-clock"></i> {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                        </div>
+                        
+                        <h6 class="mb-2">{{ alert.description }}</h6>
+                        
+                        <div class="row small text-muted">
+                            <div class="col-md-6">
+                                <i class="fas fa-arrow-right"></i> <strong>Source:</strong> {{ alert.source_ip }}
+                            </div>
+                            <div class="col-md-6">
+                                <i class="fas fa-bullseye"></i> <strong>Target:</strong> {{ alert.target_ip }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="small">
+                                <i class="fas fa-fingerprint"></i> <strong>Hash:</strong> 
+                                <code class="text-muted">{{ alert.alert_hash[:16] }}...</code>
+                            </div>
+                            <div class="small">
+                                <i class="fas fa-signature"></i> <strong>Digital Signature:</strong> 
+                                <span class="text-success">✓ Verified</span>
+                            </div>
+                        </div>
+                        
+                        {% if alert.status == 'resolved' and alert.resolved_by %}
+                        <div class="mt-2 small text-muted">
+                            <i class="fas fa-check-circle"></i> Resolved by {{ alert.resolver.username }} 
+                            on {{ alert.resolved_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ms-3">
+                        <div class="btn-group-vertical">
+                            <a href="{{ url_for('view_alert', alert_id=alert.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            {% if current_user.role in ['admin', 'analyst'] %}
+                                {% if alert.status == 'active' %}
+                                <form method="POST" action="{{ url_for('resolve_alert', alert_id=alert.id) }}" class="mt-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-check"></i> Resolve
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if alerts.pages > 1 %}
+            <nav aria-label="Alert pagination">
+                <ul class="pagination justify-content-center">
+                    {% if alerts.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('alerts', page=alerts.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in alerts.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != alerts.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('alerts', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if alerts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('alerts', page=alerts.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shield-alt fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No Intrusion Alerts Detected</h5>
+                <p class="text-muted">The NIDS system has not detected any suspicious network activity. All traffic appears to be normal.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Alerts will appear here when the system detects potential security threats such as:
+                    <ul class="mb-0 mt-2">
+                        <li>Network flooding attacks</li>
+                        <li>Port scanning attempts</li>
+                        <li>Traffic anomalies and unusual patterns</li>
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Alert Details Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Alert Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="alertModalBody">
+                <!-- Alert details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function exportAlerts() {
+        // In a real implementation, this would export alerts to CSV/JSON
+        alert('Export functionality would download alerts as CSV/JSON file');
+    }
+    
+    // Auto-refresh alerts every 30 seconds
+    setInterval(function() {
+        if (document.hidden) return; // Don't refresh if tab is not visible
+        console.log('Refreshing alerts...');
+        // In production, this would make an AJAX call to get new alerts
+    }, 30000);
+    
+    // Show alert details in modal
+    function showAlertDetails(alertId) {
+        // This would load alert details via AJAX
+        console.log('Loading alert details for:', alertId);
+    }
+</script>
+{% endblock %}

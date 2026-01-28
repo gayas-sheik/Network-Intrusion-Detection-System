@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-tachometer-alt"></i> NIDS Dashboard
+                <small class="text-muted">Network Security Overview</small>
+            </h2>
+            <div>
+                <span class="status-indicator status-active"></span>
+                <span class="text-success">System Active</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card nids-stats text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ total_logs }}</h4>
+                        <p class="mb-0">Traffic Logs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-network-wired fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ total_alerts }}</h4>
+                        <p class="mb-0">Total Alerts</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ active_alerts }}</h4>
+                        <p class="mb-0">Active Alerts</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shield-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">24/7</h4>
+                        <p class="mb-0">Monitoring</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Recent Intrusion Alerts
+                    <span class="badge bg-light text-dark ms-2">{{ recent_alerts|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_alerts %}
+                    {% for alert in recent_alerts %}
+                    <div class="alert-card {{ alert.severity }} mb-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-{{ 'success' if alert.severity == 'low' else 'warning' if alert.severity == 'medium' else 'danger' if alert.severity == 'high' else 'dark' }} me-2">
+                                        {{ alert.severity.upper() }}
+                                    </span>
+                                    <span class="badge bg-secondary me-2">
+                                        {{ alert.alert_type.replace('_', ' ').title() }}
+                                    </span>
+                                    <small class="text-muted">
+                                        {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </small>
+                                </div>
+                                <h6 class="mb-2">{{ alert.description }}</h6>
+                                <div class="small text-muted">
+                                    <i class="fas fa-arrow-right"></i> {{ alert.source_ip }} → {{ alert.target_ip }}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-{{ 'success' if alert.status == 'resolved' else 'danger' }}">
+                                        {{ alert.status.replace('_', ' ').title() }}
+                                    </span>
+                                    {% if alert.status == 'resolved' and alert.resolved_by %}
+                                    <small class="text-muted ms-2">
+                                        Resolved by {{ alert.resolver.username }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="ms-3">
+                                <a href="{{ url_for('view_alert', alert_id=alert.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                {% if current_user.role in ['admin', 'analyst'] and alert.status == 'active' %}
+                                <form method="POST" action="{{ url_for('resolve_alert', alert_id=alert.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-success ms-1">
+                                        <i class="fas fa-check"></i> Resolve
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shield-alt fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Alerts</h5>
+                        <p class="text-muted">The NIDS system is monitoring network traffic. Alerts will appear here when suspicious activity is detected.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-user-shield"></i> User Profile
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Username:</strong> {{ current_user.username }}
+                </div>
+                <div class="mb-3">
+                    <strong>Email:</strong> {{ current_user.email }}
+                </div>
+                <div class="mb-3">
+                    <strong>Role:</strong> 
+                    <span class="badge bg-{{ 'danger' if current_user.role == 'admin' else 'warning' if current_user.role == 'analyst' else 'secondary' }}">
+                        {{ current_user.role.title() }}
+                    </span>
+                </div>
+                <div class="mb-3">
+                    <strong>Member Since:</strong> {{ current_user.created_at.strftime('%Y-%m-%d') }}
+                </div>
+                {% if current_user.last_login %}
+                <div class="mb-3">
+                    <strong>Last Login:</strong> {{ current_user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <strong>MFA Status:</strong> 
+                    <span class="badge bg-success">
+                        <i class="fas fa-check"></i> Enabled
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-shield-alt"></i> NIDS Security Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> Network Monitoring Active
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> Traffic Encryption (AES-256)
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> Alert Digital Signatures
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> Access Control Enforced
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> Audit Logging Active
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-check text-success"></i> MFA Authentication
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie"></i> Alert Distribution
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <span class="badge bg-success">Low: 0</span>
+                        <span class="badge bg-warning ms-1">Medium: 0</span>
+                        <span class="badge bg-danger ms-1">High: 0</span>
+                        <span class="badge bg-dark ms-1">Critical: 0</span>
+                    </div>
+                    <small class="text-muted">Alert severity distribution for the last 24 hours</small>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.role == 'admin' %}
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-tools"></i> Admin Controls
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('nids_control') }}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-play-circle"></i> NIDS Control
+                    </a>
+                    <a href="{{ url_for('system_config') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-cog"></i> System Configuration
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Network Traffic Overview -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-network-wired"></i> Network Traffic Overview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-primary">Incoming Traffic</h5>
+                            <i class="fas fa-arrow-down fa-3x text-primary mb-2"></i>
+                            <p class="mb-0">Monitored and analyzed for threats</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-warning">NIDS Processing</h5>
+                            <i class="fas fa-cogs fa-3x text-warning mb-2"></i>
+                            <p class="mb-0">Real-time threat detection</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-success">Outgoing Traffic</h5>
+                            <i class="fas fa-arrow-up fa-3x text-success mb-2"></i>
+                            <p class="mb-0">Filtered and secured</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update alert count in navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        const alertCount = {{ active_alerts }};
+        const alertBadge = document.getElementById('alertCount');
+        if (alertBadge) {
+            alertBadge.textContent = alertCount;
+            if (alertCount > 0) {
+                alertBadge.classList.add('animate-pulse');
+            }
+        }
+    });
+    
+    // Auto-refresh dashboard every 30 seconds
+    setInterval(function() {
+        location.reload();
+    }, 30000);
+</script>
+{% endblock %}

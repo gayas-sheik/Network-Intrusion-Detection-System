@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="jumbotron bg-dark text-white p-5 rounded-3 mb-4">
+            <h1 class="display-4">
+                <i class="fas fa-shield-alt"></i> Network Intrusion Detection System
+            </h1>
+            <p class="lead">Advanced boundary monitoring with comprehensive security controls for network threat detection and prevention</p>
+            <hr class="my-4 border-white">
+            <p>Real-time network traffic analysis with AES-256 encryption, RSA digital signatures, and NIST SP 800-63-2 compliant authentication.</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-danger">
+                    <div class="card-body text-center">
+                        <i class="fas fa-network-wired fa-3x text-danger mb-3"></i>
+                        <h5 class="card-title">Network Monitoring</h5>
+                        <p class="card-text">Real-time packet analysis at network boundary with intrusion detection</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">Threat Detection</h5>
+                        <p class="card-text">Advanced detection of flooding, port scanning, and traffic anomalies</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-lock fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Secure Storage</h5>
+                        <p class="card-text">AES-256 encrypted logs with RSA digital signatures for integrity</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Architecture</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> NIST SP 800-63-2 authentication</li>
+                            <li><i class="fas fa-check text-success"></i> Multi-factor authentication (MFA)</li>
+                            <li><i class="fas fa-check text-success"></i> Role-based access control (RBAC)</li>
+                            <li><i class="fas fa-check text-success"></i> Access Control Lists (ACL)</li>
+                            <li><i class="fas fa-check text-success"></i> Comprehensive audit logging</li>
+                            <li><i class="fas fa-check text-success"></i> Network boundary monitoring</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Detection Capabilities</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-shield-alt text-primary"></i> Flooding attack detection</li>
+                            <li><i class="fas fa-shield-alt text-primary"></i> Port scanning identification</li>
+                            <li><i class="fas fa-shield-alt text-primary"></i> Traffic anomaly analysis</li>
+                            <li><i class="fas fa-shield-alt text-primary"></i> Statistical baseline comparison</li>
+                            <li><i class="fas fa-shield-alt text-primary"></i> Real-time alert generation</li>
+                            <li><i class="fas fa-shield-alt text-primary"></i> Encrypted alert storage</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-sitemap"></i> System Architecture</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <div class="alert alert-light m-2">
+                            <strong>Network</strong><br>
+                            <small>Internet/LAN</small>
+                        </div>
+                        <div class="mx-3">
+                            <i class="fas fa-arrow-down fa-2x"></i>
+                        </div>
+                        <div class="alert alert-danger m-2">
+                            <strong>NIDS Layer</strong><br>
+                            <small>Monitoring Point</small>
+                        </div>
+                        <div class="mx-3">
+                            <i class="fas fa-arrow-down fa-2x"></i>
+                        </div>
+                        <div class="alert alert-success m-2">
+                            <strong>Protected Device</strong><br>
+                            <small>Host/Server</small>
+                        </div>
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i> The NIDS operates at the network boundary, 
+                        inspecting all traffic between the network and protected devices
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% if not current_user.is_authenticated %}
+        <div class="text-center">
+            <a href="{{ url_for('login') }}" class="btn btn-danger btn-lg me-3">
+                <i class="fas fa-sign-in-alt"></i> Access NIDS
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-danger btn-lg">
+                <i class="fas fa-user-plus"></i> Register
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

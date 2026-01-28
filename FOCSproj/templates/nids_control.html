@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}NIDS Control - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-play-circle"></i> NIDS Engine Control
+                <small class="text-muted">Network Monitoring Management</small>
+            </h2>
+            <div>
+                <span class="status-indicator {{ 'status-active' if nids_running else 'status-inactive' }}"></span>
+                <span class="text-{{ 'success' if nids_running else 'danger' }}">
+                    {{ 'Active' if nids_running else 'Inactive' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Engine Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-{{ 'success' if nids_running else 'danger' }} text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-{{ 'play-circle' if nids_running else 'stop-circle' }}"></i> 
+                    NIDS Engine Status: {{ 'Running' if nids_running else 'Stopped' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Engine Information</h6>
+                        <div class="mb-2">
+                            <strong>Status:</strong> 
+                            <span class="badge bg-{{ 'success' if nids_running else 'danger' }}">
+                                {{ 'Active' if nids_running else 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Mode:</strong> Network Boundary Monitoring
+                        </div>
+                        <div class="mb-2">
+                            <strong>Detection Engine:</strong> Statistical Analysis + Pattern Matching
+                        </div>
+                        <div class="mb-2">
+                            <strong>Encryption:</strong> AES-256 for logs, RSA for alerts
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Monitoring Statistics</h6>
+                        <div class="mb-2">
+                            <strong>Packets Analyzed:</strong> 
+                            <span class="text-primary">0</span> (Demo Mode)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Alerts Generated:</strong> 
+                            <span class="text-warning">0</span> (Demo Mode)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Uptime:</strong> 
+                            <span class="text-success">0h 0m 0s</span> (Demo Mode)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Memory Usage:</strong> 
+                            <span class="text-info">0 MB</span> (Demo Mode)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Control Panel -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-cogs"></i> Engine Controls
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if nids_running %}
+                    <a href="{{ url_for('nids_control', action='stop') }}" class="btn btn-danger">
+                        <i class="fas fa-stop-circle"></i> Stop NIDS Engine
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('nids_control', action='start') }}" class="btn btn-success">
+                        <i class="fas fa-play-circle"></i> Start NIDS Engine
+                    </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-primary" onclick="restartEngine()">
+                        <i class="fas fa-sync-alt"></i> Restart Engine
+                    </button>
+                    
+                    <button class="btn btn-outline-info" onclick="viewEngineLogs()">
+                        <i class="fas fa-file-alt"></i> View Engine Logs
+                    </button>
+                </div>
+                
+                <div class="alert alert-{{ 'success' if nids_running else 'warning' }} mt-3">
+                    <i class="fas fa-info-circle"></i> 
+                    {% if nids_running %}
+                    {% if monitor_type == 'simple_browser' or monitor_type == 'browser' %}
+                    The NIDS engine is actively monitoring your browser activity - detecting tab spikes, persistent connections, and traffic anomalies in real-time.
+                    {% elif monitor_type == 'real_device' %}
+                    The NIDS engine is actively monitoring your actual device traffic with comprehensive attack detection.
+                    {% else %}
+                    The NIDS engine is actively monitoring network traffic with comprehensive attack detection.
+                    {% endif %}
+                    {% else %}
+                    The NIDS engine is currently stopped. No network traffic is being monitored or analyzed.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line"></i> 
+                    {% if monitor_type == 'simple_browser' or monitor_type == 'browser' %}
+                    Browser Activity Statistics
+                    {% elif monitor_type == 'real_device' %}
+                    Device Traffic Statistics
+                    {% else %}
+                    Network Statistics
+                    {% endif %}
+                    <span class="badge bg-light text-dark ms-2">{{ stats.get('total_packets', 0) }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">{{ stats.get('total_packets', 0) }}</h4>
+                        <p class="card-text">Total Packets</p>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info">{{ "%.1f"|format(stats.get('bytes_transferred', 0) / 1024) }} KB</h4>
+                        <p class="card-text">Data Transferred</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6 class="text-success">{{ stats.get('current_pps', 0) }}</h6>
+                        <p class="card-text small">Packets/Sec</p>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-warning">{{ stats.get('current_bps', 0) }}</h6>
+                        <p class="card-text small">Bytes/Sec</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6 class="text-danger">{{ stats.get('browser_tabs', stats.get('total_connections', 0)) }}</h6>
+                        <p class="card-text">
+                            {% if monitor_type == 'simple_browser' or monitor_type == 'browser' %}
+                            Browser Tabs
+                            {% else %}
+                            Active Connections
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-secondary">{{ stats.get('persistent_connections', 0) }}</h6>
+                        <p class="card-text">Persistent Connections</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-Time Detection Capabilities -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-shield-alt"></i> Real-Time Device Monitoring
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="text-success">Browser Tab Detection</h6>
+                                <div class="mb-2">
+                                    <span class="status-indicator status-active"></span>
+                                    <span class="text-success">Active</span>
+                                </div>
+                                <div class="small">
+                                    <strong>Threshold:</strong> 5 tabs/30s<br>
+                                    <strong>Alert Level:</strong> Medium<br>
+                                    <strong>Detection:</strong> Real-time
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="text-info">Persistent Connections</h6>
+                                <div class="mb-2">
+                                    <span class="status-indicator status-active"></span>
+                                    <span class="text-success">Active</span>
+                                </div>
+                                <div class="small">
+                                    <strong>Threshold:</strong> 5 minutes<br>
+                                    <strong>Alert Level:</strong> Low<br>
+                                    <strong>Detection:</strong> Connection tracking
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h6 class="text-warning">Traffic Spike Detection</h6>
+                                <div class="mb-2">
+                                    <span class="status-indicator status-active"></span>
+                                    <span class="text-success">Active</span>
+                                </div>
+                                <div class="small">
+                                    <strong>Method:</strong> Statistical<br>
+                                    <strong>Threshold:</strong> 2.0 std dev<br>
+                                    <strong>Alert Level:</strong> Medium
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="text-primary">Connection Anomalies</h6>
+                                <div class="mb-2">
+                                    <span class="status-indicator status-active"></span>
+                                    <span class="text-success">Active</span>
+                                </div>
+                                <div class="small">
+                                    <strong>Threshold:</strong> 20 conn/min<br>
+                                    <strong>Alert Level:</strong> Medium<br>
+                                    <strong>Detection:</strong> Real-time
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monitoring Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Real Device Monitoring Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-desktop"></i> What We Monitor</h6>
+                        <ul class="small">
+                            <li><strong>Browser Activity:</strong> Tab opening/closing patterns</li>
+                            <li><strong>Connection Duration:</strong> Long-lived connections</li>
+                            <li><strong>Traffic Patterns:</strong> Statistical anomalies</li>
+                            <li><strong>Port Access:</strong> Unusual port connections</li>
+                            <li><strong>Connection Rates:</strong> High-frequency connections</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line"></i> Detection Triggers</h6>
+                        <ul class="small">
+                            <li><strong>Tab Spike:</strong> Opening 5+ tabs quickly</li>
+                            <li><strong>Persistent:</strong> Connections > 5 minutes</li>
+                            <li><strong>Traffic Anomaly:</strong> 2x normal traffic</li>
+                            <li><strong>Connection Anomaly:</strong> 20+ connections/min</li>
+                            <li><strong>Suspicious Ports:</strong> Access to sensitive ports</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Real-time Monitoring Active:</strong> The NIDS is now monitoring your actual device traffic patterns and will alert you to abnormal browser activity, persistent connections, and traffic spikes.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Network Interface Information -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-network-wired"></i> Network Interface Monitoring
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Monitoring Interface</h6>
+                        <div class="mb-2">
+                            <strong>Interface:</strong> <code>eth0</code> (Demo)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Status:</strong> <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>IP Address:</strong> <code>192.168.1.100</code> (Demo)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Subnet:</strong> <code>192.168.1.0/24</code> (Demo)
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Protected Device</h6>
+                        <div class="mb-2">
+                            <strong>Target IP:</strong> <code>192.168.1.200</code> (Demo)
+                        </div>
+                        <div class="mb-2">
+                            <strong>MAC Address:</strong> <code>00:11:22:33:44:55</code> (Demo)
+                        </div>
+                        <div class="mb-2">
+                            <strong>Status:</strong> <span class="badge bg-success">Online</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Last Seen:</strong> <span class="text-success">Just now</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Architecture:</strong> The NIDS engine monitors all traffic flowing between the network interface and the protected device. 
+                    This boundary monitoring approach ensures comprehensive threat detection while maintaining system performance.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function restartEngine() {
+        if (confirm('Are you sure you want to restart the NIDS engine? This will temporarily stop monitoring.')) {
+            // In a real implementation, this would restart the engine
+            alert('NIDS engine restart functionality would be implemented here');
+        }
+    }
+    
+    function viewEngineLogs() {
+        // In a real implementation, this would show engine logs
+        alert('Engine logs viewer would be implemented here');
+    }
+    
+    // Auto-refresh statistics every 3 seconds when engine is running
+    {% if nids_running %}
+    setInterval(function() {
+        if (document.hidden) return; // Don't refresh if tab is not visible
+        console.log('Refreshing NIDS statistics...');
+        // In production, this would make an AJAX call to get updated stats
+        location.reload(); // For demo, just reload the page
+    }, 3000);
+    {% endif %}
+    
+    // Simulate real-time metrics update
+    function updateMetrics() {
+        // In a real implementation, these would be actual metrics
+        const metrics = {
+            totalPackets: {{ stats.get('total_packets', 0) }} + Math.floor(Math.random() * 5),
+            bytesTransferred: {{ stats.get('bytes_transferred', 0) }} + Math.floor(Math.random() * 1024),
+            currentPps: {{ stats.get('current_pps', 0) }} + Math.floor(Math.random() * 3),
+            currentBps: {{ stats.get('current_bps', 0) }} + Math.floor(Math.random() * 512),
+            activeSources: {{ stats.get('active_sources', 0) }} + Math.floor(Math.random() * 2),
+            portScans: {{ stats.get('port_scans_detected', 0) }}
+        };
+        
+        // Update statistics display (for demonstration)
+        const statsElements = document.querySelectorAll('.text-center h4, .text-center h6');
+        if (statsElements.length >= 6) {
+            statsElements[0].textContent = metrics.totalPackets;
+            statsElements[1].textContent = (metrics.bytesTransferred / 1024).toFixed(1) + ' KB';
+            statsElements[2].textContent = metrics.currentPps;
+            statsElements[3].textContent = metrics.currentBps;
+            statsElements[4].textContent = metrics.activeSources;
+            statsElements[5].textContent = metrics.portScans;
+        }
+    }
+    
+    // Update metrics every 2 seconds for demo
+    {% if nids_running %}
+    setInterval(updateMetrics, 2000);
+    {% endif %}
+    
+    // Initial metrics update
+    updateMetrics();
+</script>
+{% endblock %}

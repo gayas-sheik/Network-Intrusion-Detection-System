@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-plus"></i> NIDS User Registration
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" 
+                                   required minlength="3" maxlength="20">
+                        </div>
+                        <div class="form-text">3-20 characters, alphanumeric only</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   required minlength="8">
+                        </div>
+                        <div class="form-text">Minimum 8 characters</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                                   required minlength="8">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Access Role</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="viewer">Viewer - Read-only access to logs and alerts</option>
+                            <option value="analyst">Security Analyst - Manage alerts and analyze traffic</option>
+                            <option value="admin">Administrator - Full system control</option>
+                        </select>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> Role determines your NIDS access permissions
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the NIDS security terms and understand that:
+                                <ul class="small mt-2">
+                                    <li>Passwords are hashed with SHA-256 + salt</li>
+                                    <li>MFA will be required for login</li>
+                                    <li>All network monitoring activities are logged</li>
+                                    <li>Traffic logs are encrypted with AES-256</li>
+                                    <li>Alerts are digitally signed for integrity</li>
+                                </ul>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-user-plus"></i> Create NIDS Account
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-shield-alt"></i> <strong>Security Notice:</strong>
+                    Your credentials will be securely stored using industry-standard encryption. 
+                    All NIDS activities are monitored and logged for security purposes.
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Password confirmation validation
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = this.value;
+        
+        if (password !== confirmPassword) {
+            this.setCustomValidity('Passwords do not match');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Username validation (alphanumeric only)
+    document.getElementById('username').addEventListener('input', function() {
+        this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
+    });
+</script>
+{% endblock %}

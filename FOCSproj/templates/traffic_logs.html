@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Traffic Logs - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-network-wired"></i> Traffic Logs
+                <small class="text-muted">Encrypted Network Traffic Records</small>
+            </h2>
+            <div>
+                {% if current_user.role in ['admin', 'analyst'] %}
+                <button class="btn btn-outline-primary btn-sm" onclick="exportLogs()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Traffic Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ logs.total }}</h5>
+                <p class="card-text">Total Packets</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">TCP</h5>
+                <p class="card-text">{{ logs.items | selectattr('protocol', 'equalto', 'TCP') | list | length }} Packets</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">UDP</h5>
+                <p class="card-text">{{ logs.items | selectattr('protocol', 'equalto', 'UDP') | list | length }} Packets</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">ICMP</h5>
+                <p class="card-text">{{ logs.items | selectattr('protocol', 'equalto', 'ICMP') | list | length }} Packets</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Filters -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-filter"></i> Traffic Filters
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="protocol_filter" class="form-label">Protocol</label>
+                <select class="form-select" id="protocol_filter" name="protocol">
+                    <option value="">All Protocols</option>
+                    <option value="TCP">TCP</option>
+                    <option value="UDP">UDP</option>
+                    <option value="ICMP">ICMP</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="source_ip_filter" class="form-label">Source IP</label>
+                <input type="text" class="form-control" id="source_ip_filter" name="source_ip" 
+                       placeholder="e.g., 192.168.1.1">
+            </div>
+            <div class="col-md-3">
+                <label for="dest_ip_filter" class="form-label">Destination IP</label>
+                <input type="text" class="form-control" id="dest_ip_filter" name="dest_ip" 
+                       placeholder="e.g., 192.168.1.100">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                    <a href="{{ url_for('traffic_logs') }}" class="btn btn-outline-secondary ms-1">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Traffic Logs List -->
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-network-wired"></i> Encrypted Traffic Logs
+            <span class="badge bg-light text-dark ms-2">{{ logs.total }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if logs.items %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source</th>
+                            <th>Destination</th>
+                            <th>Protocol</th>
+                            <th>Size</th>
+                            <th>Hash</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs.items %}
+                        <tr>
+                            <td>
+                                <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                            </td>
+                            <td>
+                                <code>{{ log.source_ip }}:{{ log.source_port }}</code>
+                            </td>
+                            <td>
+                                <code>{{ log.dest_ip }}:{{ log.dest_port }}</code>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if log.protocol == 'TCP' else 'warning' if log.protocol == 'UDP' else 'info' }}">
+                                    {{ log.protocol }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ "%.1f"|format(log.packet_size / 1024) }} KB</small>
+                            </td>
+                            <td>
+                                <small><code>{{ log.packet_hash[:8] }}...</code></small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewLogDetails({{ log.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.role == 'admin' %}
+                                    <button class="btn btn-outline-danger" onclick="deleteLog({{ log.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if logs.pages > 1 %}
+            <nav aria-label="Traffic logs pagination">
+                <ul class="pagination justify-content-center">
+                    {% if logs.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('traffic_logs', page=logs.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in logs.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != logs.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('traffic_logs', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if logs.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('traffic_logs', page=logs.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-network-wired fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No Traffic Logs Found</h5>
+                <p class="text-muted">The NIDS system has not captured any network traffic yet, or no logs match the current filters.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Traffic logs will appear here when the NIDS engine is active and monitoring network traffic between the network and protected devices.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal fade" id="logModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-network-wired"></i> Traffic Log Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="logModalBody">
+                <!-- Log details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Information -->
+<div class="card mt-4 border-info">
+    <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-shield-alt"></i> Traffic Log Security
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-lock"></i> Encryption Details</h6>
+                <ul class="small">
+                    <li><strong>Algorithm:</strong> AES-256-GCM</li>
+                    <li><strong>Key Size:</strong> 256 bits per log</li>
+                    <li><strong>IV:</strong> 96-bit unique per log</li>
+                    <li><strong>Authentication:</strong> GCM tag (128 bits)</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-fingerprint"></i> Integrity Protection</h6>
+                <ul class="small">
+                    <li><strong>Hash Algorithm:</strong> SHA-256</li>
+                    <li><strong>Hash Scope:</strong> Complete packet data</li>
+                    <li><strong>Tamper Detection:</strong> Hash verification</li>
+                    <li><strong>Storage:</strong> Encrypted at rest</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function viewLogDetails(logId) {
+        // In a real implementation, this would load log details via AJAX
+        console.log('Loading log details for:', logId);
+        
+        // Mock data for demonstration
+        const mockLogData = {
+            id: logId,
+            timestamp: '2024-01-28 12:34:56',
+            source_ip: '192.168.1.100',
+            source_port: 45678,
+            dest_ip: '192.168.1.1',
+            dest_port: 80,
+            protocol: 'TCP',
+            packet_size: 1024,
+            packet_hash: 'a1b2c3d4e5f6...',
+            encrypted_payload: 'Base64EncryptedData...',
+            encryption_key: 'Base64EncryptedKey...'
+        };
+        
+        const modalBody = document.getElementById('logModalBody');
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Log ID:</strong> #${mockLogData.id}
+                </div>
+                <div class="col-md-6">
+                    <strong>Timestamp:</strong> ${mockLogData.timestamp}
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <strong>Source:</strong> <code>${mockLogData.source_ip}:${mockLogData.source_port}</code>
+                </div>
+                <div class="col-md-6">
+                    <strong>Destination:</strong> <code>${mockLogData.dest_ip}:${mockLogData.dest_port}</code>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <strong>Protocol:</strong> ${mockLogData.protocol}
+                </div>
+                <div class="col-md-6">
+                    <strong>Size:</strong> ${mockLogData.packet_size} bytes
+                </div>
+            </div>
+            <div class="mt-3">
+                <strong>Packet Hash (SHA-256):</strong>
+                <div class="mt-1">
+                    <code class="small">${mockLogData.packet_hash}</code>
+                </div>
+            </div>
+            <div class="mt-3">
+                <strong>Encrypted Payload:</strong>
+                <div class="mt-1">
+                    <code class="small text-muted">${mockLogData.encrypted_payload}</code>
+                </div>
+            </div>
+            <div class="mt-3">
+                <strong>Encryption Key (Encrypted):</strong>
+                <div class="mt-1">
+                    <code class="small text-muted">${mockLogData.encryption_key}</code>
+                </div>
+            </div>
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle"></i> 
+                This traffic log is encrypted with AES-256-GCM. The packet data is stored in encrypted form and can only be decrypted with the proper encryption key.
+            </div>
+        `;
+        
+        const modal = new bootstrap.Modal(document.getElementById('logModal'));
+        modal.show();
+    }
+    
+    function deleteLog(logId) {
+        if (confirm('Are you sure you want to delete this traffic log? This action cannot be undone.')) {
+            // In a real implementation, this would make an AJAX call to delete the log
+            alert('Delete functionality would remove log ID: ' + logId);
+        }
+    }
+    
+    function exportLogs() {
+        // In a real implementation, this would export logs to CSV/JSON
+        alert('Export functionality would download traffic logs as CSV/JSON file');
+    }
+    
+    // Auto-refresh traffic logs every 30 seconds
+    setInterval(function() {
+        if (document.hidden) return; // Don't refresh if tab is not visible
+        console.log('Refreshing traffic logs...');
+        // In production, this would make an AJAX call to get new logs
+    }, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-shield-alt"></i> NIDS Secure Login
+                    <small class="float-end">MFA Required</small>
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" 
+                                   value="{{ session.get('preserved_username', '') }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mfa_token" class="form-label">
+                            <i class="fas fa-mobile-alt"></i> MFA Token (OTP)
+                        </label>
+                        <input type="text" class="form-control" id="mfa_token" name="mfa_token" 
+                               placeholder="Enter 6-digit OTP" maxlength="6" required>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> Multi-factor authentication required for NIDS access
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-sign-in-alt"></i> Access NIDS System
+                        </button>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-envelope"></i> 
+                            <a href="#" onclick="document.getElementById('sendOtpForm').submit(); return false;">
+                                Send OTP
+                            </a>
+                        </small>
+                    </div>
+                </form>
+                
+                <form id="sendOtpForm" method="POST" action="{{ url_for('send_otp') }}" style="display: none;">
+                    <input type="hidden" name="username" id="otpUsername" value="">
+                </form>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt"></i> This login uses NIST SP 800-63-2 compliant authentication
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+        </div>
+        
+        <!-- Demo Credentials Info -->
+        <div class="card mt-3 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Demo Credentials</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Admin:</strong><br>
+                        Username: admin<br>
+                        Password: Admin123!@#
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Analyst:</strong><br>
+                        Username: analyst<br>
+                        Password: Analyst123!@#
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Viewer:</strong><br>
+                        Username: viewer<br>
+                        Password: Viewer123!@#
+                    </div>
+                </div>
+                <small class="text-muted">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    For demo purposes, use console to generate OTP: 
+                    <code>python -c "import pyotp; print(pyotp.TOTP('BASE32_SECRET').now())"
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-focus on username field
+    document.getElementById('username').focus();
+    
+    // MFA token validation (6 digits only)
+    document.getElementById('mfa_token').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // Handle "Send OTP to Email" link
+    document.querySelector('a[onclick*="sendOtpForm"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        if (!username) {
+            alert('Please enter your username first');
+            document.getElementById('username').focus();
+            return;
+        }
+        document.getElementById('otpUsername').value = username;
+        document.getElementById('sendOtpForm').submit();
+    });
+</script>
+{% endblock %}
